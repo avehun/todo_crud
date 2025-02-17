@@ -36,7 +36,11 @@ func (server *Server) ListTasks(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 	res, err := json.Marshal(tasks)
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
 	c.Send(res)
+	return nil
 }
 func (server *Server) AddTask(c *fiber.Ctx) error {
 	c.SendStatus(200)
@@ -51,6 +55,7 @@ func (server *Server) AddTask(c *fiber.Ctx) error {
 		log.Printf("Error inserting task to db: %v", err)
 		return fiber.ErrBadRequest
 	}
+	return nil
 }
 func (server *Server) UpdateTask(c *fiber.Ctx) error {
 	c.SendStatus(200)
@@ -75,6 +80,7 @@ func (server *Server) UpdateTask(c *fiber.Ctx) error {
 		log.Printf("Error parsing json: %v", err)
 		return fiber.ErrNotFound
 	}
+	return nil
 }
 func (server *Server) DeleteTask(c *fiber.Ctx) error {
 	c.SendStatus(200)
@@ -87,4 +93,5 @@ func (server *Server) DeleteTask(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.ErrNotFound
 	}
+	return nil
 }
