@@ -1,13 +1,14 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/avehun/todo_crud/internal/model"
 	"github.com/avehun/todo_crud/internal/repo"
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 )
 
 type Server struct {
@@ -28,61 +29,62 @@ func NewHandler(repo *repo.Repo) error {
 	return fb.Listen(":8080")
 }
 
-func (server *Server) ListTasks(c *fiber.Ctx) {
+func (server *Server) ListTasks(c *fiber.Ctx) error {
 	tasks, err := server.repo.GetTasks()
 	if err != nil {
-		c.SendStatus(404)
-		log.Fatalf("Error fetching tasks from db: %v", err)
+		log.Printf("Error fetching tasks from db: %v", err)
+		return fiber.ErrInternalServerError
 	}
-	c.Write(tasks)
+	res, err := json.Marshal(tasks)
+	c.Send(res)
 }
-func (server *Server) AddTask(c *fiber.Ctx) {
+func (server *Server) AddTask(c *fiber.Ctx) error {
 	c.SendStatus(200)
 	task := model.Task{}
 	err := c.BodyParser(&task)
 	if err != nil {
-		c.SendStatus(404)
-		log.Fatalf("Error parsing json: %v", err)
+		log.Printf("Error parsing json: %v", err)
+		return fiber.ErrBadRequest
 	}
 	err = server.repo.AddTask(task)
 	if err != nil {
-		c.SendStatus(404)
-		log.Fatalf("Error inserting task to db: %v", err)
+		log.Printf("Error inserting task to db: %v", err)
+		return fiber.ErrBadRequest
 	}
 }
-func (server *Server) UpdateTask(c *fiber.Ctx) {
+func (server *Server) UpdateTask(c *fiber.Ctx) error {
 	c.SendStatus(200)
 	task := model.Task{}
 
 	param := c.Params("id")
 	id, err := strconv.Atoi(param)
 	if err != nil {
-		c.SendStatus(404)
 		log.Printf("Wrong id: %v", err)
+		return fiber.ErrBadRequest
 	}
 	err = c.BodyParser(&task)
 	if err != nil {
-		c.SendStatus(404)
 		log.Printf("Error parsing json: %v", err)
+		return fiber.ErrBadRequest
 	}
 
 	task.Id = id
 	task.Updated_at = time.Now()
 	err = server.repo.UpdateTask(task)
 	if err != nil {
-		c.SendStatus(404)
 		log.Printf("Error parsing json: %v", err)
+		return fiber.ErrNotFound
 	}
 }
-func (server *Server) DeleteTask(c *fiber.Ctx) {
+func (server *Server) DeleteTask(c *fiber.Ctx) error {
 	c.SendStatus(200)
 	param := c.Params("id")
 	id, err := strconv.Atoi(param)
 	if err != nil {
-		c.SendStatus(404)
+		return fiber.ErrBadRequest
 	}
 	err = server.repo.DeleteTask(id)
 	if err != nil {
-		c.SendStatus(404)
+		return fiber.ErrNotFound
 	}
 }
